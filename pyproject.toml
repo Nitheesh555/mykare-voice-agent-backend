@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mykare-voice-agent-backend"
+version = "0.1.0"
+description = "Backend for the Mykare voice appointment agent"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic>=1.14.0",
+  "fastapi>=0.115.0",
+  "openai>=1.51.0",
+  "psycopg[binary]>=3.2.0",
+  "pydantic-settings>=2.6.0",
+  "python-dotenv>=1.0.1",
+  "sqlalchemy>=2.0.36",
+  "uvicorn[standard]>=0.32.0",
+]
+
+[project.optional-dependencies]
+voice = [
+  "deepgram-sdk>=3.7.0",
+  "cartesia>=1.0.0",
+  "livekit>=0.18.1",
+  "livekit-agents>=0.12.7",
+  "livekit-api>=0.8.2",
+]
+dev = [
+  "httpx>=0.27.2",
+  "pytest>=8.3.3",
+  "pytest-asyncio>=0.24.0",
+  "pytest-cov>=5.0.0",
+  "ruff>=0.7.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]
