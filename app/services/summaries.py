@@ -90,7 +90,11 @@ class SummaryService:
             except ImportError:
                 pass
             else:
-                client = OpenAI(api_key=self.settings.openai_api_key)
+                base_url = self.settings.openai_base_url
+                client = OpenAI(
+                    api_key=self.settings.openai_api_key,
+                    base_url=base_url,
+                )
                 transcript_lines = [
                     f"{event.event_type.value}: {event.payload_json.get('text') or event.payload_json.get('message') or event.payload_json}"
                     for event in events
@@ -104,11 +108,11 @@ class SummaryService:
                         *transcript_lines,
                     ]
                 )
-                response = client.responses.create(
+                response = client.chat.completions.create(
                     model=self.settings.openai_model,
-                    input=prompt,
+                    messages=[{"role": "user", "content": prompt}],
                 )
-                text = getattr(response, "output_text", "").strip()
+                text = (response.choices[0].message.content or "").strip()
                 if text:
                     return text, self.settings.openai_model
 
