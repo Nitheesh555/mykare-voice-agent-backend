@@ -86,11 +86,17 @@ class SummaryService:
     ) -> tuple[str, str | None]:
         if self.settings.openai_api_key:
             try:
+                import os
                 from openai import OpenAI
             except ImportError:
                 pass
             else:
-                base_url = self.settings.openai_base_url
+                # getattr fallback guards against stale lru_cache in worker subprocess
+                base_url = getattr(
+                    self.settings,
+                    "openai_base_url",
+                    os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+                )
                 client = OpenAI(
                     api_key=self.settings.openai_api_key,
                     base_url=base_url,
