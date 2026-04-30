@@ -56,4 +56,6 @@ def list_events(session_id: UUID, db: Session = Depends(get_db)) -> list[Convers
 @router.get("/{session_id}/summary", response_model=SummaryResponse)
 def get_summary(session_id: UUID, db: Session = Depends(get_db)) -> SummaryResponse:
     service = SummaryService(db)
-    return service.to_response(service.get_summary(session_id))
+    summary = service.generate_summary(session_id)
+    db.commit()
+    return service.to_response(summary)

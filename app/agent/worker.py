@@ -15,12 +15,14 @@ from livekit.agents import (
     cli,
     function_tool,
 )
+from livekit.agents.metrics import LLMMetrics, STTMetrics, TTSMetrics
 from livekit.plugins import cartesia, deepgram, openai, silero
 
 from app.agent.prompts import get_system_prompt
 from app.db.session import SessionLocal
 from app.models.conversation import ConversationSession
 from app.agent.tools import AgentToolbox
+from app.core.errors import AppError
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -88,13 +90,17 @@ async def entrypoint(ctx: JobContext) -> None:
         parsed_date = date.fromisoformat(requested_date)
         h, m = map(int, requested_time.split(":"))
         parsed_time = time(h, m)
-        result = toolbox.book_appointment(
-            phone_number=phone_number,
-            name=name,
-            requested_date=parsed_date,
-            requested_time=parsed_time,
-        )
-        db.commit()
+        try:
+            result = toolbox.book_appointment(
+                phone_number=phone_number,
+                name=name,
+                requested_date=parsed_date,
+                requested_time=parsed_time,
+            )
+            db.commit()
+        except AppError as exc:
+            db.rollback()
+            return {"error": exc.message}
         return result
 
     @function_tool()
@@ -114,13 +120,17 @@ async def entrypoint(ctx: JobContext) -> None:
         """Cancel an appointment by ID or by date/time."""
         from datetime import date, time
         from uuid import UUID
-        result = toolbox.cancel_appointment(
-            phone_number=phone_number,
-            appointment_id=UUID(appointment_id) if appointment_id else None,
-            requested_date=date.fromisoformat(requested_date) if requested_date else None,
-            requested_time=time.fromisoformat(requested_time) if requested_time else None,
-        )
-        db.commit()
+        try:
+            result = toolbox.cancel_appointment(
+                phone_number=phone_number,
+                appointment_id=UUID(appointment_id) if appointment_id else None,
+                requested_date=date.fromisoformat(requested_date) if requested_date else None,
+                requested_time=time.fromisoformat(requested_time) if requested_time else None,
+            )
+            db.commit()
+        except AppError as exc:
+            db.rollback()
+            return {"error": exc.message}
         return result
 
     @function_tool()
@@ -135,22 +145,26 @@ async def entrypoint(ctx: JobContext) -> None:
         """Modify an existing appointment to a new date/time."""
         from datetime import date, time
         from uuid import UUID
-        result = toolbox.modify_appointment(
-            phone_number=phone_number,
-            appointment_id=UUID(appointment_id) if appointment_id else None,
-            current_date=date.fromisoformat(current_date) if current_date else None,
-            current_time=time.fromisoformat(current_time) if current_time else None,
-            new_date=date.fromisoformat(new_date),
-            new_time=time.fromisoformat(new_time),
-        )
-        db.commit()
+        try:
+            result = toolbox.modify_appointment(
+                phone_number=phone_number,
+                appointment_id=UUID(appointment_id) if appointment_id else None,
+                current_date=date.fromisoformat(current_date) if current_date else None,
+                current_time=time.fromisoformat(current_time) if current_time else None,
+                new_date=date.fromisoformat(new_date),
+                new_time=time.fromisoformat(new_time),
+            )
+            db.commit()
+        except AppError as exc:
+            db.rollback()
+            return {"error": exc.message}
         return result
 
     @function_tool()
     async def end_conversation() -> dict:
         """End the conversation, generate a summary, and close the session."""
         try:
-            result = toolbox.end_conversation()
+            result = toolbox.end_conversation(cost=cost_data)
             db.commit()
         except Exception as exc:
             logger.error("end_conversation tool error: %s", exc)
@@ -175,6 +189,14 @@ async def entrypoint(ctx: JobContext) -> None:
         asyncio.create_task(_disconnect_after_delay())
         return result
 
+    # Accumulates usage metrics throughout the call; read by end_conversation.
+    cost_data: dict = {
+        "llm_prompt_tokens": 0,
+        "llm_completion_tokens": 0,
+        "tts_characters": 0,
+        "stt_audio_seconds": 0.0,
+    }
+
     tools = [
         identify_user,
         fetch_slots,
@@ -198,6 +220,18 @@ async def entrypoint(ctx: JobContext) -> None:
     )
 
     session = AgentSession()
+
+    @session.on("metrics_collected")
+    def _on_metrics(event) -> None:
+        m = event.metrics
+        if isinstance(m, LLMMetrics):
+            cost_data["llm_prompt_tokens"] += m.prompt_tokens
+            cost_data["llm_completion_tokens"] += m.completion_tokens
+        elif isinstance(m, TTSMetrics):
+            cost_data["tts_characters"] += m.characters_count
+        elif isinstance(m, STTMetrics):
+            cost_data["stt_audio_seconds"] += m.audio_duration
+
     await session.start(agent=agent, room=ctx.room)
 
     await session.generate_reply(

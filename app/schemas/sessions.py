@@ -57,5 +57,6 @@ class SummaryResponse(BaseModel):
     summary_text: str
     appointments: list[dict]
     preferences: dict
+    cost: dict = {}
     generated_at: datetime
     model_name: str | None

@@ -31,7 +31,24 @@ class SummaryService:
             raise AppError(error_code="summary_not_found", message="Summary not generated yet.", http_status=404)
         return summary
 
-    def generate_summary(self, session_id: UUID) -> ConversationSummary:
+    # Pricing constants (approximate, as of 2025)
+    _LLM_INPUT_COST_PER_TOKEN = 0.15 / 1_000_000   # GPT-4o-mini input
+    _LLM_OUTPUT_COST_PER_TOKEN = 0.60 / 1_000_000  # GPT-4o-mini output
+    _TTS_COST_PER_CHAR = 65 / 1_000_000             # Cartesia Sonic (~$65/1M chars)
+    _STT_COST_PER_SECOND = 0.0043 / 60              # Deepgram Nova-2 (~$0.0043/min)
+
+    @staticmethod
+    def calculate_cost(llm_prompt_tokens: int, llm_completion_tokens: int,
+                       tts_characters: int, stt_audio_seconds: float) -> float:
+        return round(
+            llm_prompt_tokens * SummaryService._LLM_INPUT_COST_PER_TOKEN
+            + llm_completion_tokens * SummaryService._LLM_OUTPUT_COST_PER_TOKEN
+            + tts_characters * SummaryService._TTS_COST_PER_CHAR
+            + stt_audio_seconds * SummaryService._STT_COST_PER_SECOND,
+            6,
+        )
+
+    def generate_summary(self, session_id: UUID, cost: dict | None = None) -> ConversationSummary:
         existing = self.db.execute(
             select(ConversationSummary).where(ConversationSummary.session_id == session_id)
         ).scalar_one_or_none()
@@ -60,11 +77,26 @@ class SummaryService:
             ]
 
         summary_text, model_name = self._generate_summary_text(session.extracted_entities_json, events, appointments_json)
+
+        cost = cost or {}
+        llm_prompt = cost.get("llm_prompt_tokens", 0)
+        llm_completion = cost.get("llm_completion_tokens", 0)
+        tts_chars = cost.get("tts_characters", 0)
+        stt_seconds = cost.get("stt_audio_seconds", 0.0)
+        cost_json = {
+            "llm_prompt_tokens": llm_prompt,
+            "llm_completion_tokens": llm_completion,
+            "tts_characters": tts_chars,
+            "stt_audio_seconds": round(stt_seconds, 2),
+            "estimated_cost_usd": self.calculate_cost(llm_prompt, llm_completion, tts_chars, stt_seconds),
+        }
+
         summary = ConversationSummary(
             session_id=session_id,
             summary_text=summary_text,
             appointments_json=appointments_json,
             preferences_json=preferences,
+            cost_json=cost_json,
             generated_at=datetime.now(timezone.utc),
             model_name=model_name,
         )
@@ -140,6 +172,7 @@ class SummaryService:
             summary_text=summary.summary_text,
             appointments=summary.appointments_json,
             preferences=summary.preferences_json,
+            cost=summary.cost_json or {},
             generated_at=summary.generated_at,
             model_name=summary.model_name,
         )
