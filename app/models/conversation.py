@@ -75,6 +75,7 @@ class ConversationSummary(UUIDPrimaryKeyMixin, Base):
     summary_text: Mapped[str] = mapped_column(Text, nullable=False)
     appointments_json: Mapped[list[dict]] = mapped_column(json_type(), default=list, nullable=False)
     preferences_json: Mapped[dict] = mapped_column(json_type(), default=dict, nullable=False)
+    cost_json: Mapped[dict] = mapped_column(json_type(), default=dict, nullable=False)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     model_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 

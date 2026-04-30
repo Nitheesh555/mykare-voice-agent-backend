@@ -169,10 +169,10 @@ class AgentToolbox:
         self._emit(EventType.TOOL_SUCCEEDED, "modify_appointment", result)
         return result
 
-    def end_conversation(self) -> dict:
+    def end_conversation(self, cost: dict | None = None) -> dict:
         self._emit(EventType.TOOL_STARTED, "end_conversation", {})
         self.sessions.end_session(self.session_id)
-        summary = self.summaries.generate_summary(self.session_id)
+        summary = self.summaries.generate_summary(self.session_id, cost=cost)
         result = {"summary_text": summary.summary_text}
         self._emit(EventType.TOOL_SUCCEEDED, "end_conversation", result)
         return result

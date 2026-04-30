@@ -2,7 +2,7 @@ from collections.abc import Generator
 
 from app.core.config import get_settings
 from app.db.base import Base
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 
@@ -44,3 +44,11 @@ def create_db_and_tables() -> None:
     from app.models import appointment, conversation, user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+
+    # Add cost_json column to existing databases that pre-date this column.
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE conversation_summaries ADD COLUMN cost_json TEXT NOT NULL DEFAULT '{}'"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
