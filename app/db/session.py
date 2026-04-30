@@ -8,13 +8,20 @@ from sqlalchemy.orm import Session, sessionmaker
 
 settings = get_settings()
 
+# Railway injects postgresql:// which SQLAlchemy maps to psycopg2.
+# Force psycopg (v3) by rewriting the scheme.
+_db_url = settings.database_url
+if _db_url.startswith("postgresql://") or _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    _db_url = _db_url.replace("postgres://", "postgresql+psycopg://", 1)
+
 if settings.database_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False, "timeout": 30}
 else:
     connect_args = {}
 
 engine = create_engine(
-    settings.database_url,
+    _db_url,
     future=True,
     pool_pre_ping=True,
     connect_args=connect_args,
