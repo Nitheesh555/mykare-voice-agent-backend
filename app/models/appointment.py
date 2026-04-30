@@ -16,7 +16,7 @@ class Appointment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "appointment_date",
             "appointment_time",
             unique=True,
-            postgresql_where=text("status = 'booked'"),
+            postgresql_where=text("status = 'BOOKED'"),
         ),
     )
 
