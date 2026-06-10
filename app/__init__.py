@@ -1,1 +1,1 @@
-"""Mykare backend package."""
+"""Doctor appointment voice agent backend package."""

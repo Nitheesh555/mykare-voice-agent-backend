@@ -19,7 +19,7 @@ class LiveKitService:
         self.settings = settings or get_settings()
 
     def create_session(self, participant_name: str | None = None) -> LiveKitSessionInfo:
-        room_name = f"mykare-session-{uuid4().hex}"
+        room_name = f"voice-agent-session-{uuid4().hex}"
         expires_at = datetime.now(timezone.utc) + timedelta(
             minutes=self.settings.session_token_ttl_minutes
         )

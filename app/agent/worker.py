@@ -235,7 +235,7 @@ async def entrypoint(ctx: JobContext) -> None:
     await session.start(agent=agent, room=ctx.room)
 
     await session.generate_reply(
-        instructions="Greet the user warmly as a Mykare healthcare front-desk assistant and ask how you can help them today."
+        instructions="Greet the user warmly as a healthcare front-desk assistant and ask how you can help them today."
     )
 
 

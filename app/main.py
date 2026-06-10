@@ -18,7 +18,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
-        title="Mykare Voice Agent Backend",
+        title="Doctor Appointment Voice Agent Backend",
         version="0.1.0",
         docs_url="/docs",
         redoc_url="/redoc",

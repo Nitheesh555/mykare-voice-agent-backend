@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "test", "staging", "production"] = "development"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    database_url: str = "sqlite:///./mykare.db"
+    database_url: str = "sqlite:///./voice_agent.db"
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
     supabase_service_role_key: str | None = None

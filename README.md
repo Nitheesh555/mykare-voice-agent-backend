@@ -1,6 +1,6 @@
-# Mykare Voice Agent — Backend
+# Doctor Appointment Voice Agent — Backend
 
-FastAPI backend for the Mykare AI voice appointment agent. Handles session management, appointment booking, LiveKit room wiring, and hosts the LiveKit agent worker.
+FastAPI backend for a doctor appointment voice agent. Handles session management, appointment booking, LiveKit room wiring, and hosts the LiveKit agent worker.
 
 ## Tech Stack
 
@@ -55,7 +55,7 @@ python -m app.agent.worker start
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | No | Defaults to `sqlite:///./mykare.db` |
+| `DATABASE_URL` | No | Defaults to `sqlite:///./voice_agent.db` |
 | `LIVEKIT_URL` | Yes (prod) | LiveKit Cloud WebSocket URL |
 | `LIVEKIT_API_KEY` | Yes (prod) | LiveKit API key |
 | `LIVEKIT_API_SECRET` | Yes (prod) | LiveKit API secret |

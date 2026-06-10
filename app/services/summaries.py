@@ -157,7 +157,7 @@ class SummaryService:
         caller = extraction_state.get("name") or "The caller"
         intent = extraction_state.get("intent") or "general assistance"
         summary_text = (
-            f"{caller} contacted the Mykare assistant for {intent}. "
+            f"{caller} contacted the assistant for {intent}. "
             f"Captured phone number: {extraction_state.get('phone_number') or 'not provided'}. "
             f"Requested date/time: {extraction_state.get('requested_date') or 'n/a'} "
             f"{extraction_state.get('requested_time') or ''}".strip()
